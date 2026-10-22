@@ -1,0 +1,70 @@
+name: Pipeline Build, Test e Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verificar sintaxe (compilar)
+        run: python -m py_compile codigo/hello.py
+
+      - name: Gerar pacote
+        run: |
+          mkdir -p dist
+          cp -r codigo dist/
+
+      - name: Guardar pacote
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacote
+          path: dist/
+
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verificar saída do hello.py
+        run: |
+          saida=$(python codigo/hello.py)
+          echo "Saída: $saida"
+          test "$saida" = "Hello, World!"
+
+  deploy:
+    name: Deploy
+    needs: [build, test]
+    # só publica em push na main, nunca em pull request
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: producao
+    steps:
+      - name: Baixar pacote
+        uses: actions/download-artifact@v4
+        with:
+          name: pacote
+          path: dist/
+
+      - name: Deploy
+        run: |
+          echo "Publicando o conteúdo de dist/..."
+          ls -R dist
+          # Troque pelo seu comando real de deploy (scp, rsync, aws, etc.)
