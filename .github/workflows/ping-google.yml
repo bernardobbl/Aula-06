@@ -1,0 +1,17 @@
+name: Ping Google diário
+
+on:
+  schedule:
+    # GitHub Actions usa UTC. 05:00 em Fortaleza (UTC-3) = 08:00 UTC
+    - cron: "0 8 * * *"
+  workflow_dispatch: # permite rodar manualmente pela aba Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping no Google
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            --write-out "Status: %{http_code} | Tempo: %{time_total}s\n" \
+            https://www.google.com
